@@ -1,0 +1,510 @@
+Control script
+using System.Collections;
+using System.Collections.Generic;
+using UnityEngine;
+
+public class Control : MonoBehaviour
+{
+    [Header("Movement")]
+    public float moveSpeed;
+    public float wallRunSpeed;
+    public float groundDrag;
+
+    [Header("Ground Check")]
+    public float playerHeight;
+    public LayerMask whatIsGround;
+    bool grounded;
+
+    [Header("Jumping")]
+    public float jumpForce;
+    public float jumpCoolDown;
+    public float airMultiplier;
+    public bool ready;
+    public int jumpsleft = 2;
+
+
+    [Header("Dash")]
+    public float dashForce;
+    public float dashCoolDown;
+    public bool dashready;
+
+    [Header("Climbing")]
+    public float climbForce;
+    public bool climbReady;
+    public float climbCoolDown;
+
+    [Header("Firework")]
+    public float fireWorkCoolDown = 0.75f;
+    public bool fireWorkReady = true;
+    public Transform Cam;
+    public Transform AP;
+    public Transform mimic;
+    public Vector3 mimicSync;
+    public float throwForce;
+    public float throwUpForce;
+    public GameObject fireworkPrefab;
+
+
+
+    [Header("Keybinds")]
+    public KeyCode jumpKey = KeyCode.Space;
+    public KeyCode dashKey = KeyCode.Q;
+    public KeyCode climbKey = KeyCode.E;
+    public KeyCode fireWorkKey = KeyCode.F;
+
+
+
+    public ParticleSystem effect1, effect2;
+    public Transform orientation;
+    //Create 2 floats which will store the horizontal and vertical input from the user
+    float hozInput;
+    float vertInput;
+    //Create a Vector 3 which will be used to store the direction of movement
+    Vector3 moveDir;
+    //Create a variable to store the rigid body which is used for movement
+    Rigidbody rb;
+    // Start is called before the first frame update
+    void Start()
+    {
+        //getting the rigidbody component
+        rb = GetComponent<Rigidbody>();
+        rb.freezeRotation = true;
+        Vector3 mimicSync = mimic.position; 
+    }
+
+
+    private void MyInput()
+    {
+        //Get the horizontal and vertical inputs and store them in the floats 
+        hozInput = Input.GetAxisRaw("Horizontal");
+        //Debug.Log(hozInput);
+        vertInput = Input.GetAxisRaw("Vertical");
+        //An if statement to check if a player can jump 
+        if (Input.GetKey(jumpKey) && ready && jumpsleft!=0)
+        {
+            ready = false;
+            Jump();
+            jumpsleft--;
+            //Wait a certain amount of time before calling the function jump reset
+            Invoke(nameof(jumpReset), jumpCoolDown);
+
+        }
+        //Similar to before an if statement which checks if all nessacary variables are in the correct state before dashing
+        if (Input.GetKey(dashKey) && dashready)
+        {
+            dashready = false;
+            Dash();
+            Invoke(nameof(dashReset), dashCoolDown);
+        }
+        if (Input.GetKey(fireWorkKey) && fireWorkReady)
+        {
+            Debug.Log("fireWorkReady = false");
+            fireWorkReady = false;
+            fireWork();
+            Invoke(nameof(fireWorkReset), fireWorkCoolDown);
+        }
+        
+
+    }
+    private void ClimbInput()
+    {
+        if (Input.GetKey(climbKey))
+        {
+            climbReady = false;
+            Climb();
+            Invoke(nameof(ClimbReset), climbCoolDown);
+        }
+    }
+    private void MovePlayer()
+    {
+        moveDir = orientation.forward * vertInput + orientation.right * hozInput;
+        rb.AddForce(moveDir.normalized * moveSpeed * 10f, ForceMode.Force);
+        if (grounded)
+            rb.AddForce(moveDir.normalized * moveSpeed * 10f, ForceMode.Force);
+        else if (!grounded)
+            rb.AddForce(moveDir.normalized * moveSpeed * 10f * airMultiplier, ForceMode.Force);
+
+
+    }
+    private void SpeedControl()
+    {
+        Vector3 flatVel = new Vector3(rb.velocity.x, 0f, rb.velocity.z);
+        if (flatVel.magnitude > moveSpeed)
+        {
+            Vector3 limitVel = flatVel.normalized * moveSpeed;
+            rb.velocity = new Vector3(limitVel.x, rb.velocity.y, limitVel.z);
+            // Debug.Log("SpeedControl in effect");
+        }
+    }
+    private void Jump()
+    {
+        rb.velocity = new Vector3(rb.velocity.x, 0f, rb.velocity.z);
+        rb.AddForce(transform.up * jumpForce, ForceMode.Impulse);
+    }
+    private void jumpReset()
+    {
+        ready = true;
+    }
+
+
+    private void Dash()
+    {
+        moveDir = orientation.forward * vertInput + orientation.right * hozInput;
+        rb.AddForce(moveDir.normalized * dashForce * 10f, ForceMode.Impulse);
+        ParticleEffect();
+    }
+    private void dashReset()
+    {
+        dashready = true;
+    }
+    void OnCollisionEnter(Collision collisionInfo)
+    {
+        if (collisionInfo.collider.tag == "isWall")
+        {
+            ClimbInput();
+        }
+    }
+    private void Climb()
+    {
+        Debug.Log("Climb");
+        rb.velocity = new Vector3(rb.velocity.x, 0f, rb.velocity.z);
+        rb.AddForce(transform.up * climbForce, ForceMode.Impulse);
+
+    }
+    private void ClimbReset()
+    {
+        climbReady = true;
+    }
+    IEnumerator ParticleEffect()
+    {
+        effect1.Play();
+        effect2.Play();
+        yield return new WaitForSeconds(3);
+        effect1.Stop();
+        effect2.Stop();
+    }
+    public void fireWork()
+    {
+        Vector3 spawnPoint = AP.position;
+
+        GameObject fireworkGameObject = Instantiate(fireworkPrefab,spawnPoint, Cam.rotation);
+        Rigidbody FWRB = fireworkGameObject.GetComponent<Rigidbody>();
+        Vector3 forceToAdd = Cam.transform.forward * throwForce + transform.up * throwUpForce;
+        rb.AddForce(forceToAdd,ForceMode.Impulse);
+        //mimic.position = mimicSync;
+        /*float force = 10f;
+        Vector3 addon = new Vector3(1f, 0f, 0f);
+        Vector3 scale = new Vector3(0.2f, 0.2f, 0.2f);
+        Vector3 spawnPoint = Cam.position;
+        GameObject capsule = GameObject.CreatePrimitive(PrimitiveType.Capsule);
+        capsule.transform.localScale = scale;
+        capsule.transform.localRotation = orientation.rotation;
+        capsule.transform.position = orientation.position + addon;
+
+        float xAngle = Cam.transform.eulerAngles.x;
+        float zAngle = Cam.transform.eulerAngles.y;
+        float xComp = Mathf.Cos(xAngle) * force;
+        Debug.Log("xComp");
+        Debug.Log(xComp);
+        float zComp = Mathf.Sin(zAngle) * force;
+        Debug.Log("zComp");
+        Debug.Log(zComp);
+        Vector3 forceApplied = new Vector3(Mathf.Abs(xComp), 0, Mathf.Abs(zComp));
+        Rigidbody capsuleRB = capsule.AddComponent<Rigidbody>();
+        capsuleRB.AddForce(forceApplied,ForceMode.Impulse);*/
+
+    }
+    public void fireWorkReset()
+    {
+        fireWorkReady = true;
+    }
+
+    private void FixedUpdate()
+    {
+        MovePlayer();
+    }
+
+    // Update is called once per frame
+    void Update()
+    {
+        grounded = Physics.Raycast(transform.position, Vector3.down, playerHeight * 0.5f + 0.2f, whatIsGround);
+        // Debug.Log(grounded);
+        MyInput();
+        SpeedControl();
+        if (grounded)
+        {
+            rb.drag = groundDrag;
+            jumpsleft = 1;
+        }
+        else
+            rb.drag = 0;
+    }
+}
+
+
+Camera system script
+using System.Collections;
+using System.Collections.Generic;
+using UnityEngine;
+
+public class ADS : MonoBehaviour
+{
+    public KeyCode aimKey = KeyCode.C;
+    public Transform Cam;
+    public Transform aimPoint;
+    public Transform cam2;
+    //public int camNo = 0;
+    public bool camReady;
+    public float camCoolDown;
+    public MeshRenderer gunBody1;
+    public MeshRenderer gunBody2;
+    public MeshRenderer gunHandle1;
+    public MeshRenderer gunHandle2;
+    public bool camTrue = true;
+    // Start is called before the first frame update
+    void Start()
+    {
+        
+    }
+
+    // Update is called once per frame
+    void Update()
+    {
+        if (Input.GetKey(aimKey) && camReady && camTrue)
+        {
+            //camNo++;
+            camTrue=false;
+            camReady = false;
+            Cam1();
+            Invoke(nameof(camReset), camCoolDown);
+            GunOff();
+        }
+        if (Input.GetKey(aimKey) && camReady && camTrue == false)
+        {
+            camTrue=true;
+            camReady = false;
+            Cam1();
+            Invoke(nameof(camReset), camCoolDown);
+            GunOn();
+        }
+    }
+    public void Cam1()
+    {
+        Vector3 CCTVpoint;
+        Vector3 CamPoint;
+        CamPoint = Cam.position;
+        CCTVpoint = aimPoint.position;
+        Cam.position = CCTVpoint;
+        aimPoint.position = CamPoint;
+        Debug.Log("Switching to CCTV1");
+        GunOff();
+
+        /*if (camNo == 2)
+        {
+            CamPoint = Cam.position;
+            CCTVpoint = cam2.position;
+            Cam.position = CCTVpoint;
+            cam2.position = CamPoint;
+            Debug.Log("Switching to CCTV2");
+            GunOff();
+            camNo=1;
+        }*/
+    }
+    public void camReset()
+    {
+        camReady = true;
+    }
+    public void GunOff()
+    {
+        gunHandle1.enabled = false;
+        gunHandle2.enabled = false;
+        gunBody1.enabled = false;
+        gunBody2.enabled = false;
+
+    }
+    public void GunOn()
+    {
+        gunHandle1.enabled = true;
+        gunHandle2.enabled = true;
+        gunBody1.enabled = true;
+        gunBody2.enabled = true;
+
+    }
+}
+
+
+reset script
+
+using System.Collections;
+using System.Collections.Generic;
+using UnityEngine;
+
+public class Reset : MonoBehaviour
+{
+
+    public Transform Player;
+    public Transform Mimic;
+    public KeyCode resetKey = KeyCode.V;
+    public Vector3 startPoint;
+    public Vector3 mimicStartPoint;
+    // Start is called before the first frame update
+    void Start()
+    {
+        //Vector3 startPoint;
+        //startPoint = Player.position;
+        //Debug.Log("Start Point");
+    }
+
+    // Update is called once per frame
+    void Update()
+    {
+        if (Input.GetKey(resetKey))
+        {
+            reset();
+
+        }
+    }
+    void OnCollisionEnter(Collision collision)
+    {
+        if (collision.gameObject.tag == "dontTouch")
+        {
+            reset();
+        }
+    }
+    public void reset()
+    {
+        Player.position = startPoint;
+        Mimic.position = mimicStartPoint;
+    }
+}
+
+
+Camera holder script
+using System.Collections;
+using System.Collections.Generic;
+using UnityEngine;
+
+public class CamHold : MonoBehaviour
+{
+    public Transform CamPos;
+    // Start is called before the first frame update
+    void Start()
+    {
+        
+    }
+
+    // Update is called once per frame
+    void Update()
+    {
+        transform.position = CamPos.position; 
+    }
+}
+
+
+Camera script
+using System.Collections;
+using System.Collections.Generic;
+using UnityEngine;
+
+public class Cam : MonoBehaviour
+{
+    public float sensX;
+    public float sensY;
+
+    public Transform orientation;
+    public Transform Camera;
+    float hozInput;
+
+    float xRo;
+    float yRo;
+    float RotationX;
+    float RotationY;
+    float RotationZ;
+    // Start is called before the first frame update
+    void Start()
+    {
+        Cursor.lockState = CursorLockMode.Locked;
+        Cursor.visible = false;
+    }
+
+    // Update is called once per frame
+    void Update()
+    {
+        hozInput = Input.GetAxisRaw("Horizontal");
+
+        float mouseX = Input.GetAxisRaw("Mouse X") * Time.deltaTime * sensX;
+        float mouseY = Input.GetAxisRaw("Mouse Y") * Time.deltaTime * sensY;
+
+        yRo += mouseX;
+        xRo -= mouseY;
+        xRo = Mathf.Clamp(xRo, -90f, 90f);
+
+        transform.rotation = Quaternion.Euler(xRo, yRo, 0);
+        orientation.rotation = Quaternion.Euler(0, yRo, 0);
+
+        RotationX = Camera.eulerAngles.x;
+        RotationY = Camera.eulerAngles.y;
+        RotationZ = Camera.eulerAngles.z;
+        if (hozInput == 1)
+        {
+            transform.rotation = Quaternion.Euler(RotationX, RotationY, RotationZ - 1.5f);
+        }
+        if (hozInput == -1)
+        {
+            transform.rotation = Quaternion.Euler(RotationX, RotationY, RotationZ + 1.5f);
+        }
+        //Debug.Log("X Ro");
+        //Debug.Log(RotationX);
+    }
+}
+
+
+Swap Position Script
+using System.Collections;
+using System.Collections.Generic;
+using UnityEngine;
+
+public class SwapPos : MonoBehaviour
+{
+    [Header("Swap Variables")]
+    public Transform PlayerPos;
+    public Transform MimicPos;
+    public Transform PlaceholderPos;
+    public bool swapReady;
+    public float swapCoolDown;
+    public KeyCode swapKey = KeyCode.E;
+
+
+
+    // Start is called before the first frame update
+    void Start()
+    {
+    }
+
+    // Update is called once per frame
+    void Update()
+    {
+        if (Input.GetKey(swapKey) && swapReady)
+        {
+            swapReady = false;
+            Swap();
+            Invoke(nameof(swapReset), swapCoolDown);
+        }
+    }
+    private void Swap()
+    {
+        Transform Place;
+        Vector3 PlayerNewPos;
+        Vector3 MimicNewPos;
+
+        PlayerNewPos = MimicPos.position;
+        MimicNewPos = PlayerPos.position;
+
+        PlayerPos.position = PlayerNewPos;
+        MimicPos.position = MimicNewPos;
+    }
+    private void swapReset()
+    {
+        swapReady = true;
+    }
+}
