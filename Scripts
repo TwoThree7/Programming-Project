@@ -10,6 +10,7 @@ public class Control : MonoBehaviour
     public float wallRunSpeed;
     public float groundDrag;
 
+    //Look @13^2
     [Header("Ground Check")]
     public float playerHeight;
     public LayerMask whatIsGround;
@@ -66,6 +67,7 @@ public class Control : MonoBehaviour
     // Start is called before the first frame update
     void Start()
     {
+        //Nice
         //getting the rigidbody component
         rb = GetComponent<Rigidbody>();
         rb.freezeRotation = true;
@@ -164,6 +166,7 @@ public class Control : MonoBehaviour
             ClimbInput();
         }
     }
+    //Nice 2.0
     private void Climb()
     {
         Debug.Log("Climb");
@@ -262,6 +265,8 @@ public class ADS : MonoBehaviour
     public MeshRenderer gunHandle2;
     public bool camTrue = true;
     // Start is called before the first frame update
+    
+    //Nice 3.0
     void Start()
     {
         
@@ -361,7 +366,7 @@ public class Reset : MonoBehaviour
         if (Input.GetKey(resetKey))
         {
             reset();
-
+            //Nice 4.0
         }
     }
     void OnCollisionEnter(Collision collision)
@@ -461,6 +466,7 @@ public class Cam : MonoBehaviour
 
 Swap Position Script
 using System.Collections;
+//Nice 5.0
 using System.Collections.Generic;
 using UnityEngine;
 
