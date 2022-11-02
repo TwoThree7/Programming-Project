@@ -514,3 +514,209 @@ public class SwapPos : MonoBehaviour
         swapReady = true;
     }
 }
+
+Damage script
+using System.Collections;
+using System.Collections.Generic;
+using UnityEngine;
+
+
+public class Damage : MonoBehaviour
+{
+    public float health = 10f;
+    Rigidbody body;
+    float force;
+    public UnityEngine.AI.NavMeshAgent NMA;
+
+    public void takeDamage(float gunDamage)
+    {
+        health -= gunDamage;
+        if (health <= 0f)
+        {
+            death();
+        }
+    }
+    public void death()
+    {
+        force = Random.Range(-100, 100);
+        gameObject.tag = "Dead";
+        EnemyAi enemy = gameObject.GetComponent<EnemyAi>();
+        enemy.enabled = false;
+        NMA.enabled=false;
+        Debug.Log("death");
+        body.AddForce(force,Mathf.Abs(force),force);
+    }
+    void Start()
+    {
+        //Debug.Log(force);
+        body = GetComponent<Rigidbody>();
+        Debug.Log("Got enemy RigidBody");
+
+    }
+}
+
+Enemy Ai
+using System.Collections;
+using System.Collections.Generic;
+using UnityEngine;
+using UnityEngine.AI;
+
+public class EnemyAi : MonoBehaviour
+{
+    public NavMeshAgent agent;
+    public Transform player;
+    public LayerMask whatIsGround, whatIsPlayer;
+    // Start is called before the first frame update
+
+    [Header("Patrol")]
+    public Vector3 walkPoint;
+    bool walkPointBool;
+    public float walkDistance;
+
+    [Header("Attacking/Defending")]
+    public float attackSpeed;
+    bool attackReady;
+
+    [Header("States")]
+    public float sightrange, attackRange;
+    public bool playerSpotted, playerAttacked;
+
+
+    private void Awake()
+    {
+        player = GameObject.Find("PlayerMesh").transform;
+        agent = GetComponent<NavMeshAgent>();
+    }
+
+    private void patrol()
+    {
+        if (!walkPointBool)
+        {
+            SearchWalkPoint();
+        }
+        if (walkPointBool)
+        {
+            agent.SetDestination(walkPoint);
+        }
+        Vector3 distanceToWP = transform.position - walkPoint;
+        if (distanceToWP.magnitude < 1f)
+        {
+            walkPointBool = false;
+        }
+    }
+    private void SearchWalkPoint()
+    {
+        float randomZaxis = Random.Range(-walkDistance, walkDistance);
+        float randomXaxis = Random.Range(-walkDistance, walkDistance);
+
+        walkPoint = new Vector3(transform.position.x + randomXaxis, transform.position.y, transform.position.z + randomZaxis);
+        if (Physics.Raycast(walkPoint, -transform.up, 2f, whatIsGround))
+        {
+            walkPointBool = true;
+        }
+    }
+    private void pursuit()
+    {
+        agent.SetDestination(player.position);
+    }
+    private void attack()
+    {
+        agent.SetDestination(transform.position);
+        transform.LookAt(player);
+        if (!playerAttacked)
+        {
+            Debug.Log("Attacked");
+            playerAttacked = true;
+            Invoke(nameof(ResetAttack), attackSpeed);
+        }
+    }
+    private void ResetAttack()
+    {
+        playerAttacked = false;
+    }
+    void Start()
+    {
+        
+    }
+
+    // Update is called once per frame
+    void Update()
+    {
+        playerSpotted = Physics.CheckSphere(transform.position, sightrange, whatIsPlayer);
+        playerAttacked = Physics.CheckSphere(transform.position, sightrange, whatIsPlayer);
+
+        if (!playerSpotted && !playerAttacked) patrol();
+        if (playerSpotted && !playerAttacked) pursuit();
+        if (playerSpotted && playerAttacked) patrol();
+    }
+}
+
+Shooting script
+using UnityEngine;
+
+public class Shooting : MonoBehaviour
+{
+    [Header("Shooting var")]
+    public float gunDamage = 10f;
+    public float range = 100f;
+    public Camera cam;
+    public GameObject muzzleFlash;
+    public Transform muzzle1, muzzle2;
+    public Light flash,flash2;
+    public MeshRenderer Mflash1;
+    public MeshRenderer Mflash2;
+    public MeshRenderer bulletTrail1;
+    public MeshRenderer bulletTrail2;
+    public float muzzleFlashTime = .1f;
+
+    // Start is called before the first frame update
+    void Start()
+    {
+        muzzleFlashOff();
+    }
+
+    // Update is called once per frame
+    void Update()
+    {
+        if (Input.GetButtonDown("Fire1"))
+        {
+            Shoot();
+        }
+    }
+    void Shoot()
+    {
+        /*GameObject muzzle = Instantiate(muzzleFlash, muzzle1.position,muzzle1.rotation);
+        flash.enabled = true;
+        GameObject muzzleTwo = Instantiate(muzzleFlash, muzzle2.position, muzzle2.rotation);
+        flash2.enabled = true;*/
+        RaycastHit hitInfo;
+        if (Physics.Raycast(cam.transform.position, cam.transform.forward, out hitInfo, range))
+        {
+            Debug.Log(hitInfo.transform.name);
+            Damage damage = hitInfo.transform.GetComponent<Damage>();
+            if (damage != null)
+            {
+                damage.takeDamage(gunDamage);
+            }
+        }
+
+        Mflash1.enabled = true;
+        Mflash2.enabled = true;
+        bulletTrail1.enabled = true;
+        bulletTrail2.enabled = true;
+        Invoke(nameof(muzzleFlashOff), muzzleFlashTime);
+        /*Destroy(muzzle, .1f);
+        flash.enabled = false;
+        flash2.enabled = false;
+        Destroy(muzzleTwo, .08f);*/
+
+    }
+    void muzzleFlashOff()
+    {
+        Mflash1.enabled = false;
+        Mflash2.enabled = false;
+        bulletTrail1.enabled = false;
+        bulletTrail2.enabled = false;
+
+    }
+}
