@@ -720,3 +720,270 @@ public class Shooting : MonoBehaviour
 
     }
 }
+
+
+Character Menu
+using System.Collections;
+using System.Collections.Generic;
+using UnityEngine;
+using UnityEngine.SceneManagement;
+
+public class CharMenu : MonoBehaviour
+{
+    public string charString = "";
+    // Start is called before the first frame update
+    public void char1()
+    {
+        charString = "Char 1";
+        SceneManager.LoadScene("MainStage");
+    }
+    public void char2()
+    {
+        charString = "Char 2";
+        SceneManager.LoadScene("MainStage");
+    }
+    public void char3()
+    {
+        charString = "Char 3";
+        SceneManager.LoadScene("MainStage");
+    }
+    public void char4()
+    {
+        charString = "Char 4";
+        SceneManager.LoadScene("MainStage");
+    }
+    public void char5()
+    {
+        charString = "Char 5";
+        SceneManager.LoadScene("MainStage");
+    }
+}
+
+
+Pause Menu
+using System.Collections;
+using System.Collections.Generic;
+using UnityEngine;
+
+public class PauseMenu : MonoBehaviour
+{
+    public static bool paused = false;
+    public GameObject pauseMenuUi;
+    // Start is called before the first frame update
+    void Start()
+    {
+        
+    }
+
+    // Update is called once per frame
+    void Update()
+    {
+        if (Input.GetKeyDown(KeyCode.Escape))
+        {
+            if (paused)
+            {
+                Resume();
+            }
+            else
+            {
+                Pause();
+            }
+        }
+    }
+    void Resume()
+    {
+        pauseMenuUi.SetActive(false);
+        Time.timeScale = 1f;
+        paused = false;
+    }
+    void Pause()
+    {
+        pauseMenuUi.SetActive(true);
+        Time.timeScale = 0f;
+        paused = true;
+    }
+}
+
+Weapon Wheel
+using System.Collections;
+using System.Collections.Generic;
+using UnityEngine;
+
+public class WeaponWheel : MonoBehaviour
+{
+    public KeyCode wheelKey = KeyCode.L;
+    public MeshRenderer weaponWheelMesh;
+    public Transform Wheel;
+    public Vector3 Scale = new Vector3(0f,0f,0f);
+    public float scale = 0.01f;
+    public bool enabled = false;
+    public string weapon = "";
+
+    [Header("ShotgunMesh")]
+    public MeshRenderer BarrelMesh1;
+    public MeshRenderer BarrelMesh2;
+    public MeshRenderer PumpMesh;
+    public MeshRenderer HandleMesh;
+
+    [Header("RevolverMesh")]
+    public MeshRenderer revolverBarrel;
+    public MeshRenderer revolverHandle;
+    public MeshRenderer ammoBarrel;
+
+    [Header("LazerRifle")]
+    public MeshRenderer lazerRifleMesh;
+
+    [Header("RocketLauncher")]
+    public MeshRenderer barrelMesh;
+    public MeshRenderer innnerBarrelMesh;
+    public MeshRenderer RocketMesh;
+    public MeshRenderer handleMesh;
+    public MeshRenderer sideGripMesh;
+
+    [Header("Key Codes")]
+    public KeyCode RevolverKey = KeyCode.Alpha4;
+    public KeyCode RocketKey = KeyCode.Alpha5;
+    public KeyCode ShotGunKey = KeyCode.Alpha6;
+    public KeyCode LazerKey = KeyCode.Alpha7;
+    // Start is called before the first frame update
+    void Start()
+    {
+        
+        disableMeshes();
+    }
+
+    // Update is called once per frame
+    void Update()
+    {
+        if (Input.GetKeyDown(wheelKey))
+        {
+            enableMeshes();
+            enabled = true;
+            
+
+
+            //WheelSpin();
+        }
+        if (Input.GetKeyUp(wheelKey))
+        {
+            disableMeshes();
+            enabled = false;
+        }
+        if (Input.GetKeyDown(RevolverKey) && enabled)
+        {
+            Debug.Log("Revolver Chosen");
+            weapon = "Revolver";
+        }
+        if (Input.GetKeyDown(RocketKey) && enabled)
+        {
+            Debug.Log("Rocket Chosen");
+            weapon = "Rocket";
+        }
+        if (Input.GetKeyDown(ShotGunKey) && enabled)
+        {
+            Debug.Log("Shotgun Chosen");
+            weapon = "Shotgun";
+        }
+        if (Input.GetKeyDown(LazerKey) && enabled)
+        {
+            Debug.Log("Lazer Chosen");
+            weapon = "Lazer";
+        }
+    }
+    public void disableLazer()
+    {
+        lazerRifleMesh.enabled = false;
+    }
+    public void disableRocket()
+    {
+        barrelMesh.enabled = false;
+        handleMesh.enabled = false;
+        innnerBarrelMesh.enabled = false;
+        RocketMesh.enabled = false;
+        sideGripMesh.enabled = false;
+    }
+    public void disableShotGun()
+    {
+        BarrelMesh1.enabled = false;
+        BarrelMesh2.enabled = false;
+        PumpMesh.enabled = false;
+        HandleMesh.enabled = false;
+    }
+    public void disableRevolver()
+    {
+        revolverBarrel.enabled = false;
+        revolverHandle.enabled = false;
+        ammoBarrel.enabled = false;
+    }
+    public void enableLazer()
+    {
+        lazerRifleMesh.enabled = true;
+    }
+    public void enableRocket()
+    {
+        barrelMesh.enabled = true;
+        handleMesh.enabled = true;
+        innnerBarrelMesh.enabled = true;
+        RocketMesh.enabled = true;
+        sideGripMesh.enabled = true;
+    }
+    public void enableShotGun()
+    {
+        BarrelMesh1.enabled = true;
+        BarrelMesh2.enabled = true;
+        PumpMesh.enabled = true;
+        HandleMesh.enabled = true;
+    }
+    public void enableRevolver()
+    {
+        revolverBarrel.enabled = true;
+        revolverHandle.enabled = true;
+        ammoBarrel.enabled = true;
+    }
+    public void disableMeshes()
+    {
+        weaponWheelMesh.enabled = false;
+        //lazerRifle mesh
+        disableLazer();
+        //Rocket Launcher Mesh
+        disableRocket();
+        //shotgun mesh
+        disableShotGun();
+        //disable Revolver
+        disableRevolver();
+    }
+    public void enableMeshes()
+    {
+        weaponWheelMesh.enabled = true;
+        enableLazer();
+        enableRocket();
+        enableShotGun();
+        enableRevolver();
+    }
+}
+
+
+Main Menu
+using System.Collections;
+using System.Collections.Generic;
+using UnityEngine;
+using UnityEngine.SceneManagement;
+
+public class MainMenu : MonoBehaviour
+{
+    // Start is called before the first frame update
+    public void playGame()
+    {
+        SceneManager.LoadScene(1);
+        Debug.Log("playGame");
+    }
+    public void quitGame()
+    {
+        Application.Quit();
+        Debug.Log("quitGame");
+    }
+    public void settings()
+    {
+        Debug.Log("Settings");
+    }
+}
